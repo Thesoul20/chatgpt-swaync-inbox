@@ -4,7 +4,7 @@
 
 This project operates locally and does not require credentials, cookies, ChatGPT API keys, or a backend service.
 
-The userscript reads rendered ChatGPT assistant text only to construct the local desktop notification preview.
+The userscript reads rendered ChatGPT assistant text only to construct the local desktop notification preview. It declares `@grant window.focus` solely so an explicit notification click can reactivate the originating browser tab; notifications do not request focus when they appear.
 
 ## Reporting
 

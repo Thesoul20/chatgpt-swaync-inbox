@@ -19,6 +19,8 @@ Please include:
 - swaync version;
 - browser and version;
 - userscript manager and version;
+- whether the userscript manager is allowed to run on `https://chatgpt.com/*`;
+- active **ChatGPT swaync Inbox** userscript version;
 - whether the userscript test notification works;
 - output of `./scripts/doctor.sh` with private paths/usernames redacted if desired.
 

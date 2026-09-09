@@ -31,6 +31,23 @@ body:
       label: Browser and userscript manager versions
     validations:
       required: true
+  - type: input
+    id: userscript_version
+    attributes:
+      label: ChatGPT swaync Inbox userscript version
+      description: Use the version shown by Log detector status or the userscript manager.
+    validations:
+      required: true
+  - type: dropdown
+    id: userscript_permission
+    attributes:
+      label: Is the userscript manager allowed to run on chatgpt.com?
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
   - type: textarea
     id: doctor
     attributes:

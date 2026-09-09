@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Clarified that the userscript manager must be allowed to run on `https://chatgpt.com/*` before detector or swaync troubleshooting.
+- Synchronized README, architecture, troubleshooting, contributor guidance, security notes, and bug-report fields with the current v0.2.4 click-only focus and short-response behavior.
+
 ## 0.2.4 - 2026-09-09
 
 - Added a throttled `MutationObserver` so DOM completion checks are event-driven instead of relying only on the 400 ms safety poll.

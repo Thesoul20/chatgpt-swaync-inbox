@@ -33,7 +33,7 @@ Generic ChatGPT notification userscripts and browser extensions already exist. T
 - A newly observed user prompt arms the generation cycle only when it follows a recent Send/Enter/form-submit signal, so very short answers do not depend on catching the transient Stop control while ordinary conversation navigation remains fail-quiet.
 - Binds the notification preview to the assistant turn that follows the **latest user prompt**, preventing stale previous-answer previews.
 - Suppresses success notifications after a recent manual Stop click or an obvious generation error.
-- DOM fallback requires a real generation cycle, assistant activity, Stop-control disappearance, and a stabilization window.
+- DOM fallback requires a real generation cycle, prompt-bound assistant activity, no active Stop control, and a stabilization window.
 - Includes a response preview in the notification.
 - Completion notifications **never steal focus when they appear**. Clicking one reactivates the originating ChatGPT tab instead of opening a new tab.
 - Each notification captures its conversation URL; if the originating tab later moves to another chat, clicking the notification restores the original conversation in that same tab.
@@ -49,7 +49,7 @@ Generic ChatGPT notification userscripts and browser extensions already exist. T
 - `swaync` (SwayNotificationCenter)
 - `libnotify` / `notify-send` for diagnostics
 - Firefox or a Chromium-family browser
-- Tampermonkey or Violentmonkey
+- Tampermonkey or Violentmonkey, with permission to run userscripts on `https://chatgpt.com/*`
 - Python 3
 
 Tested initially on:
@@ -58,7 +58,7 @@ Tested initially on:
 - Hyprland
 - swaync 0.12.6
 - Firefox 154
-- Tampermonkey
+- Tampermonkey 5.5.0
 
 Other swaync-based Wayland desktops should work, but are not yet part of the tested matrix.
 
@@ -95,7 +95,7 @@ Open:
 userscript/chatgpt-swaync-inbox.user.js
 ```
 
-in Tampermonkey or Violentmonkey and install it, then reload `https://chatgpt.com`.
+in Tampermonkey or Violentmonkey and install it. Then make sure the userscript manager is allowed to run userscripts on `https://chatgpt.com/*`, confirm **ChatGPT swaync Inbox** is enabled for the site, and reload any already-open ChatGPT tabs.
 
 ### 4. Verify the Linux notification path
 
@@ -135,12 +135,12 @@ ChatGPT Answer Complete
 
 ### Notification click behavior
 
-Completion notifications are **conversation-bound**. The userscript intentionally does not provide a `url` field to `GM_notification`, because browser userscript managers may interpret that as “open this URL” and create a new tab. Instead it requests `highlight: true` and handles the click locally.
+Completion notifications are **conversation-bound**. The userscript intentionally does not provide a `url` field to `GM_notification`, because browser userscript managers may interpret that as “open this URL” and create a new tab. It also intentionally omits `highlight: true`, so a completed answer does not steal focus when the notification appears.
 
 When you click a completion notification:
 
-1. Tampermonkey/Violentmonkey highlights the tab that emitted it;
-2. the click handler prevents the default open-URL behavior;
+1. the click handler prevents the default open-URL behavior;
+2. `@grant window.focus` lets Tampermonkey/Violentmonkey activate the tab that emitted the notification;
 3. if that tab is still on the captured conversation, it scrolls back toward the completed answer;
 4. if the tab has since navigated to another ChatGPT conversation, the **same tab** is navigated back to the captured conversation URL.
 
@@ -175,7 +175,7 @@ The doctor checks:
 make test
 ```
 
-The test suite verifies that swaync config installation is idempotent, preserves unrelated settings, restores prior values on uninstall, validates the userscript statically, and exercises pure detector logic such as conversation-path recognition, prompt-bound turn selection, error tokens, and manual-stop guard windows.
+The test suite verifies that swaync config installation is idempotent, preserves unrelated settings, restores prior values on uninstall, validates the userscript statically, and exercises detector logic such as conversation-path recognition, prompt-bound turn selection, recent-submit gating, error tokens, manual-stop guard windows, and conversation restoration decisions.
 
 ## How this differs from existing ChatGPT notifiers
 
@@ -206,7 +206,6 @@ No source code from the projects above is included here. They are listed as rela
 - A ChatGPT tab must remain open for a userscript to observe it.
 - Manual Stop and visible error detection remain heuristic because ChatGPT does not expose a stable public browser completion API.
 - The primary network detector observes undocumented same-origin ChatGPT conversation paths; if they change or resource timing is unavailable, the DOM fallback remains active.
-- DOM selectors can still change as ChatGPT evolves.
 - `timeout-critical=0` affects every critical swaync notification, not only ChatGPT.
 
 See [Troubleshooting](docs/troubleshooting.md) for recovery steps.

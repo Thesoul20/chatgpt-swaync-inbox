@@ -2,15 +2,24 @@
 
 ## No notification at all
 
-Run:
+Before debugging swaync or the completion detector, confirm the userscript is actually allowed to run on ChatGPT:
+
+1. Open Tampermonkey/Violentmonkey while on `https://chatgpt.com`.
+2. Confirm the browser/extension has permission to run userscripts on `https://chatgpt.com/*`.
+3. Confirm **ChatGPT swaync Inbox** is enabled for the current site.
+4. Reload already-open ChatGPT tabs after changing permissions or updating the userscript.
+
+If this permission is missing, the userscript is never injected, `GM_notification` is never called, and swaync has nothing to display.
+
+Then run:
 
 ```bash
 ./scripts/doctor.sh
 ```
 
-Then use the userscript manager menu on `chatgpt.com` and select **Send test notification**.
+Use the userscript manager menu on `chatgpt.com` and select **Send test notification**. If that menu item is missing, treat it as a strong sign that the userscript is not running on the page.
 
-If the userscript test fails but `./scripts/test-notification.sh` works, inspect the userscript manager permissions and confirm the script is enabled for `https://chatgpt.com/*`.
+If the userscript test fails but `./scripts/test-notification.sh` works, re-check the userscript manager site permissions before investigating detector internals.
 
 ## Linux test appears but disappears
 
@@ -52,7 +61,7 @@ DND or notification inhibition can suppress visible popups even when the project
 
 Update the userscript to **v0.2.1 or newer**. Older releases used `url: location.href`, which some userscript/browser combinations interpret as an instruction to open the URL in a new tab.
 
-In v0.2.1+, production notifications omit `url`, request `highlight: true`, and restore the captured conversation inside the originating tab. If the behavior persists after updating, confirm the active userscript version from **Log detector status** and disable any older experimental ChatGPT notification scripts.
+Current releases omit the `url` option entirely. Starting with v0.2.2 they also omit `highlight`, so notifications stay passive until clicked; starting with v0.2.3 `@grant window.focus` lets the explicit click activate the originating tab. If a click still opens a new tab, confirm the active userscript version from **Log detector status** and disable any older experimental ChatGPT notification scripts.
 
 ## Duplicate notifications
 
@@ -64,13 +73,11 @@ First use the userscript manager menu on ChatGPT and choose **Log detector statu
 
 The network completion path currently recognizes `/backend-api/f/conversation` and `/backend-api/conversation`. If ChatGPT changes these internal paths, the DOM fallback should still work.
 
-If both paths fail, ChatGPT may have changed the DOM. Inspect the generation Stop button and verify one of these is still recognizable:
+If both paths fail, ChatGPT may have changed the DOM. Inspect the generation and composer controls. Verify that:
 
-- a `data-testid` containing `stop`;
-- an accessible label such as `Stop generating` or `Stop streaming`;
-- an equivalent localized label.
-
-Also check whether assistant messages still use `data-message-author-role="assistant"`.
+- the Stop control still exposes a `data-testid` containing `stop`, an accessible label such as `Stop generating` / `Stop streaming`, or an equivalent localized label;
+- the Send control or composer still produces a recognizable Send/Enter/form-submit signal for the short-response path;
+- user and assistant messages still expose `data-message-author-role="user"` and `data-message-author-role="assistant"`.
 
 ## Undo everything
 

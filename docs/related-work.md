@@ -40,9 +40,9 @@ Only general behavioral ideas were used.
 
 Only general behavioral ideas were used.
 
-## What v0.2.0 implements independently
+## What the current detector implements independently
 
-The v0.2.0 detector is intentionally hybrid:
+The current detector keeps the v0.2.0 hybrid design and adds the v0.2.4 event-driven short-response path:
 
 ```text
 Known ChatGPT conversation request completes
@@ -55,13 +55,17 @@ Known ChatGPT conversation request completes
               │
               └── if unavailable/missed
                         ↓
-                 DOM state fallback
+              event-driven DOM fallback
                         │
-                        ├── generation Stop observed
-                        ├── assistant activity observed
-                        ├── Stop disappears
+                        ├── Stop observed
+                        │       OR
+                        ├── recent Send/Enter/form submit + new prompt
+                        ├── prompt-bound assistant activity
+                        ├── no active Stop / no error
                         ├── output stabilizes
                         └── notify
 ```
+
+Uncorrelated prompt changes, such as loading an existing conversation, only update the baseline and remain fail-quiet.
 
 The Linux/Wayland persistence layer remains the defining feature of this project: the completion notification is promoted by a narrow swaync rule and retained as an unread task until the user dismisses it.

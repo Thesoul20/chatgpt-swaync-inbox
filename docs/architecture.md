@@ -20,7 +20,7 @@ GM_notification                                 timeout-critical = 0
 
 If ChatGPT changes its UI or request path, only the browser detector should need adjustment. If a user changes compositor or notification styling, the detector should not care.
 
-## Completion detector: v0.2.0
+## Completion detector: v0.2.4
 
 The detector uses two independent paths and deduplicates their result.
 
@@ -47,13 +47,12 @@ The response body is never intercepted and no network content is uploaded or mod
 
 The DOM fallback remains active even when the network observer installs successfully. It covers endpoint changes, browsers that do not expose the expected resource timing entry, and other missed network signals.
 
-The fallback requires all of the following:
+The fallback requires a real generation cycle plus stable assistant output. A cycle can be armed in either of two ways:
 
-1. a recognized Stop control was observed, proving a generation cycle started;
-2. assistant output bound to that prompt changed from its baseline;
-3. no recent manual Stop click or obvious error is present;
-4. the Stop control disappears;
-5. output remains stable through the quiet/stability windows.
+1. a recognized Stop control is observed; or
+2. a newly rendered user prompt appears shortly after a local Send/Enter/form-submit signal.
+
+After a cycle is armed, the detector requires prompt-bound assistant activity, no recent manual Stop or obvious error, no active Stop control, and stable output through the quiet/stability windows. Prompt changes without recent submission evidence are treated as navigation/hydration baselines and do not notify.
 
 The two paths share the same prompt-bound notification key, so the same answer should not notify twice.
 
@@ -108,16 +107,20 @@ The production `GM_notification` intentionally omits its own timeout. The deskto
 
 The completion detector binds not only the preview to the latest prompt/answer pair, but also the notification click to the **conversation URL that existed when the notification was emitted**.
 
-The production `GM_notification` deliberately omits the `url` option. Supplying `url: location.href` can cause the userscript manager/browser to open a new tab when the notification is clicked. Instead the notification uses:
+The production `GM_notification` deliberately omits both the `url` option and `highlight`. Supplying `url: location.href` can cause the userscript manager/browser to open a new tab, while `highlight` can steal focus as soon as the notification appears. Current releases keep notification creation passive and perform navigation only inside the explicit click handler:
 
 ```text
-highlight: true
-        +
+notification appears
+        ↓
+no url / no highlight
+        ↓
+user clicks notification
+        ↓
 onclick(event)
         ↓
 preventDefault()
         ↓
-focus originating tab
+@grant window.focus → focus originating tab
         ↓
 current URL == captured conversation URL?
     ├─ yes → scroll toward the completed answer
@@ -135,8 +138,9 @@ If the original tab has been closed entirely, the userscript does not intentiona
 
 - **Known network endpoint changes:** resource signal is missed; DOM fallback remains active.
 - **Resource Timing unavailable:** network observer fails quiet; DOM fallback remains active.
-- **Stop selector changes:** network path can still complete; DOM fallback may stop recognizing cycles.
+- **Stop selector changes:** network path can still complete; recent-submit + prompt-change arming can still cover some cycles, but Stop-based evidence becomes unavailable.
 - **Turn/role selector changes:** prompt-bound resolution fails; detector fails quiet instead of using a stale answer.
+- **Userscript site permission missing:** the script is never injected, so no detector or `GM_notification` path runs at all.
 - **swaync rule missing:** browser notification still appears but follows normal swaync timeout.
 - **critical timeout non-zero:** ChatGPT notification is promoted to critical but still expires according to swaync policy.
 - **DND/inhibition:** OS policy wins and may suppress the popup.
