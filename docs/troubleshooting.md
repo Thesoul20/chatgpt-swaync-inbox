@@ -53,7 +53,11 @@ Confirm that only one copy of the userscript is enabled. Userscript managers may
 
 ## Completion notification never fires
 
-ChatGPT may have changed the DOM. In browser developer tools, inspect the generation Stop button and verify one of these is still recognizable:
+First use the userscript manager menu on ChatGPT and choose **Log detector status**. In the browser console, confirm `networkObserverInstalled` and inspect the latest prompt-bound snapshot.
+
+The network completion path currently recognizes `/backend-api/f/conversation` and `/backend-api/conversation`. If ChatGPT changes these internal paths, the DOM fallback should still work.
+
+If both paths fail, ChatGPT may have changed the DOM. Inspect the generation Stop button and verify one of these is still recognizable:
 
 - a `data-testid` containing `stop`;
 - an accessible label such as `Stop generating` or `Stop streaming`;

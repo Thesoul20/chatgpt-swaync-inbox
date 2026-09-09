@@ -2,35 +2,79 @@
 
 ## Boundary of responsibility
 
-The project deliberately separates browser detection from Linux notification policy.
+The project deliberately separates browser completion detection from Linux notification policy.
 
 ```text
-Browser layer                          Desktop layer
-─────────────                          ─────────────
-ChatGPT DOM                            org.freedesktop.Notifications
-  ↓                                             ↓
-userscript state machine               swaync notification-visibility
-  ↓                                             ↓
-GM_notification                        override urgency → critical
-  ↓                                             ↓
-Firefox / Chromium                     timeout-critical = 0
-                                                ↓
-                                      persistent until dismissed
+Browser layer                                   Desktop layer
+─────────────                                   ─────────────
+ChatGPT request + rendered turns                org.freedesktop.Notifications
+        ↓                                                   ↓
+hybrid completion detector                      swaync notification-visibility
+        ↓                                                   ↓
+prompt-bound final-answer resolver               override urgency → critical
+        ↓                                                   ↓
+GM_notification                                 timeout-critical = 0
+                                                            ↓
+                                                  persistent until dismissed
 ```
 
-If ChatGPT changes its UI, only the browser layer should need adjustment. If a user changes compositor or notification styling, the ChatGPT detector should not care.
+If ChatGPT changes its UI or request path, only the browser detector should need adjustment. If a user changes compositor or notification styling, the detector should not care.
 
-## Completion detector
+## Completion detector: v0.2.0
 
-The userscript uses a conservative three-part contract:
+The detector uses two independent paths and deduplicates their result.
 
-1. a Stop control must have been observed, proving that a generation cycle actually started;
-2. the Stop control must disappear and remain absent through a stabilization window;
-3. assistant output must differ from the baseline captured when generation began.
+### Primary: resource-completion signal
 
-A click on a recognized Stop control records a recent manual-stop timestamp and suppresses a completion notification within the guard window.
+A `PerformanceObserver` watches same-origin resource timing entries for the currently known ChatGPT conversation endpoints:
 
-The current polling interval is 500 ms and the stabilization window is 4.5 seconds. This intentionally adds latency in exchange for fewer false positives during tool activity, thinking transitions, and UI rerenders.
+```text
+/backend-api/f/conversation
+/backend-api/conversation
+```
+
+A completed matching resource is treated as a strong indication that the current response stream ended. It is **not sufficient by itself** to emit a notification. The detector then:
+
+1. identifies the latest user prompt in rendered conversation order;
+2. resolves only the first assistant turn following that prompt;
+3. waits until that answer is non-empty and stable;
+4. suppresses success if a recent manual Stop or obvious error is detected;
+5. emits the persistent notification.
+
+The response body is never intercepted and no network content is uploaded or modified. Resource timing is only used as a local completion signal.
+
+### Fallback: conservative DOM state machine
+
+The DOM fallback remains active even when the network observer installs successfully. It covers endpoint changes, browsers that do not expose the expected resource timing entry, and other missed network signals.
+
+The fallback requires all of the following:
+
+1. a recognized Stop control was observed, proving a generation cycle started;
+2. assistant output bound to that prompt changed from its baseline;
+3. no recent manual Stop click or obvious error is present;
+4. the Stop control disappears;
+5. output remains stable through the quiet/stability windows.
+
+The two paths share the same prompt-bound notification key, so the same answer should not notify twice.
+
+## Prompt-bound answer resolution
+
+Using “the last assistant message on the page” can accidentally select the previous answer while a new prompt is still starting. v0.2.0 instead walks conversation turns in document order:
+
+```text
+user(prompt A)
+assistant(answer A)
+user(prompt B)        ← latest user prompt
+assistant(answer B)   ← only valid preview for prompt B
+```
+
+If `answer B` does not exist yet, the resolver returns “pending”; it never falls back to `answer A`.
+
+## Stop and error semantics
+
+A click on a recognized Stop control records a guard timestamp. A request or DOM completion arriving inside that window is not considered a successful natural completion.
+
+Obvious generation errors are also fail-quiet. The detector looks for recent error/alert UI and error text associated with the prompt-bound answer. This is deliberately conservative: missing a notification is preferable to reporting a failed response as successfully finished.
 
 ## Persistence and the critical timeout
 
@@ -61,8 +105,12 @@ The production `GM_notification` intentionally omits its own timeout. The deskto
 
 ## Failure modes
 
-- **Stop selector changes:** no generation is recognized; fail quiet.
-- **Assistant selector changes:** response-change check fails; fail quiet.
+- **Known network endpoint changes:** resource signal is missed; DOM fallback remains active.
+- **Resource Timing unavailable:** network observer fails quiet; DOM fallback remains active.
+- **Stop selector changes:** network path can still complete; DOM fallback may stop recognizing cycles.
+- **Turn/role selector changes:** prompt-bound resolution fails; detector fails quiet instead of using a stale answer.
 - **swaync rule missing:** browser notification still appears but follows normal swaync timeout.
 - **critical timeout non-zero:** ChatGPT notification is promoted to critical but still expires according to swaync policy.
 - **DND/inhibition:** OS policy wins and may suppress the popup.
+
+See [Related work](related-work.md) for design provenance and licensing boundaries.

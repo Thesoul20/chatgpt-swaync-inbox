@@ -28,10 +28,10 @@ Generic ChatGPT notification userscripts and browser extensions already exist. T
 
 ## Features
 
-- Detects a real ChatGPT generation cycle before considering completion.
-- Waits for the Stop control to disappear and for a stabilization window before notifying.
-- Verifies that assistant output changed, reducing false positives from UI rerenders.
-- Suppresses “success” notifications after a recent manual Stop click.
+- Uses a **hybrid completion detector**: same-origin ChatGPT conversation resource completion as the primary signal, with a conservative DOM state-machine fallback.
+- Binds the notification preview to the assistant turn that follows the **latest user prompt**, preventing stale previous-answer previews.
+- Suppresses success notifications after a recent manual Stop click or an obvious generation error.
+- DOM fallback requires a real generation cycle, assistant activity, Stop-control disappearance, and a stabilization window.
 - Includes a response preview in the notification.
 - Clicking the userscript notification returns to the ChatGPT page.
 - Adds only one named `swaync` visibility rule.
@@ -153,7 +153,7 @@ The doctor checks:
 make test
 ```
 
-The test suite verifies that swaync config installation is idempotent, preserves unrelated settings, restores prior values on uninstall, and that the userscript passes JavaScript/static checks.
+The test suite verifies that swaync config installation is idempotent, preserves unrelated settings, restores prior values on uninstall, validates the userscript statically, and exercises pure detector logic such as conversation-path recognition, prompt-bound turn selection, error tokens, and manual-stop guard windows.
 
 ## How this differs from existing ChatGPT notifiers
 
@@ -164,11 +164,11 @@ Several projects already solve answer-completion notification itself:
 | [ramhaidar/ChatGPT-Response-Complete-Notifier](https://github.com/ramhaidar/ChatGPT-Response-Complete-Notifier) | Browser/userscript completion notifications + sound | Browser/network and prompt-bound watcher in its newer implementation | No documented swaync integration |
 | [kkonstantin08/chatgpt-done-notifier](https://github.com/kkonstantin08/chatgpt-done-notifier) | Chrome MV3 extension, Windows-focused | Conservative DOM state machine | No |
 | [scarecrowx913x/ChatGPT-Answer-Done-Notifier](https://github.com/scarecrowx913x/ChatGPT-Answer-Done-Notifier) | Userscript beep + desktop notification + favicon badge | ChatGPT UI state | No documented swaync persistence |
-| **chatgpt-swaync-inbox** | Linux/Wayland task-inbox semantics | Conservative userscript state machine | **Yes — core feature** |
+| **chatgpt-swaync-inbox** | Linux/Wayland task-inbox semantics | Hybrid resource-completion signal + prompt-bound resolver + DOM fallback | **Yes — core feature** |
 
 Those projects are alternatives if you only need a transient browser/OS notification. This repository exists for users who want completed ChatGPT work to behave like an unread desktop task.
 
-No source code from the projects above is included here. They are listed as related work and implementation references.
+No source code from the projects above is included here. They are listed as related work and design references. See [Related work and design provenance](docs/related-work.md) for the reviewed ideas and licensing boundary.
 
 ## Design principles
 
@@ -182,9 +182,10 @@ No source code from the projects above is included here. They are listed as rela
 
 - ChatGPT is a live web application. DOM selectors can change.
 - A ChatGPT tab must remain open for a userscript to observe it.
-- Manual Stop detection is heuristic.
+- Manual Stop and visible error detection remain heuristic because ChatGPT does not expose a stable public browser completion API.
+- The primary network detector observes undocumented same-origin ChatGPT conversation paths; if they change or resource timing is unavailable, the DOM fallback remains active.
+- DOM selectors can still change as ChatGPT evolves.
 - `timeout-critical=0` affects every critical swaync notification, not only ChatGPT.
-- The current detector is DOM/state based rather than tied to ChatGPT internal network endpoints; this avoids relying on undocumented request paths but can require selector maintenance.
 
 See [Troubleshooting](docs/troubleshooting.md) for recovery steps.
 
