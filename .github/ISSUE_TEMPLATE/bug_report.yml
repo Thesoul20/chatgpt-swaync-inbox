@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a completion-detection or swaync integration problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not paste private ChatGPT conversation text or secrets."
+  - type: input
+    id: distro
+    attributes:
+      label: Linux distribution
+    validations:
+      required: true
+  - type: input
+    id: compositor
+    attributes:
+      label: Compositor / desktop
+      placeholder: Hyprland, Sway, etc.
+    validations:
+      required: true
+  - type: input
+    id: swaync
+    attributes:
+      label: swaync version
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and userscript manager versions
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: doctor output
+      description: Redact private paths or usernames if desired.
+      render: shell
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
