@@ -81,3 +81,8 @@ Run:
 ```
 
 Then remove the userscript from Tampermonkey/Violentmonkey. The installer-created backup remains next to your swaync config for manual recovery.
+
+
+## Notification steals focus as soon as it appears
+
+Update the userscript to **v0.2.2 or newer**. v0.2.1 used `highlight: true`, and Tampermonkey may focus the sending tab/window immediately when the notification is shown. v0.2.2 removes `highlight`; focus/navigation happens only after an explicit notification click.

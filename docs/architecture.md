@@ -142,3 +142,8 @@ If the original tab has been closed entirely, the userscript does not intentiona
 - **DND/inhibition:** OS policy wins and may suppress the popup.
 
 See [Related work](related-work.md) for design provenance and licensing boundaries.
+
+
+## Click-only focus policy
+
+`GM_notification.highlight` is intentionally omitted. Tampermonkey documents `highlight` as focusing/highlighting the sending tab/window, which would interrupt whatever the user is doing as soon as a completion notification appears. Focus is instead requested only inside the notification `onclick` callback, after the user explicitly clicks the notification.

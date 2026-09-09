@@ -33,7 +33,7 @@ Generic ChatGPT notification userscripts and browser extensions already exist. T
 - Suppresses success notifications after a recent manual Stop click or an obvious generation error.
 - DOM fallback requires a real generation cycle, assistant activity, Stop-control disappearance, and a stabilization window.
 - Includes a response preview in the notification.
-- Clicking a completion notification **reactivates the originating ChatGPT tab instead of opening a new tab**.
+- Completion notifications **never steal focus when they appear**. Clicking one reactivates the originating ChatGPT tab instead of opening a new tab.
 - Each notification captures its conversation URL; if the originating tab later moves to another chat, clicking the notification restores the original conversation in that same tab.
 - Adds only one named `swaync` visibility rule.
 - Backs up `~/.config/swaync/config.json` before modifying it.
@@ -115,6 +115,11 @@ Send test notification
 That notification should also remain until dismissed.
 
 ## Usage
+
+### Click-to-focus behavior
+
+Notifications are passive when they appear: the current Firefox tab/window keeps focus. Only an explicit click on the notification triggers navigation. On click, the userscript focuses the originating ChatGPT page, prevents the old new-tab URL behavior, and restores the captured conversation URL inside that originating tab when necessary.
+
 
 Use ChatGPT normally. When a response truly finishes, the userscript emits:
 

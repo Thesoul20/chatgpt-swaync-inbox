@@ -5,7 +5,7 @@
 // @supportURL   https://github.com/Thesoul20/chatgpt-swaync-inbox/issues
 // @downloadURL  https://raw.githubusercontent.com/Thesoul20/chatgpt-swaync-inbox/main/userscript/chatgpt-swaync-inbox.user.js
 // @updateURL    https://raw.githubusercontent.com/Thesoul20/chatgpt-swaync-inbox/main/userscript/chatgpt-swaync-inbox.user.js
-// @version      0.2.1
+// @version      0.2.2
 // @description  Turn completed ChatGPT web answers into persistent Linux/Wayland desktop notifications when paired with swaync.
 // @match        https://chatgpt.com/*
 // @grant        GM_notification
@@ -242,7 +242,6 @@
       title: NOTIFICATION_TITLE,
       text: preview(snapshot.answerText),
       tag: `chatgpt-complete-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      highlight: true,
       silent: false,
       onclick: (event) => {
         event?.preventDefault?.();
@@ -445,7 +444,6 @@
       title: NOTIFICATION_TITLE,
       text: 'If swaync integration is installed, this notification should stay until you dismiss it.',
       tag: `chatgpt-swaync-test-${Date.now()}`,
-      highlight: true,
       silent: false,
       onclick: (event) => {
         event?.preventDefault?.();
@@ -457,7 +455,7 @@
 
   GM_registerMenuCommand('Log detector status', () => {
     console.info('[chatgpt-swaync-inbox] detector status', {
-      version: '0.2.1',
+      version: '0.2.2',
       state,
       networkObserverInstalled,
       cyclePromptKey,
@@ -470,5 +468,5 @@
   installNetworkObserver();
   setInterval(tickDomFallback, CONFIG.pollMs);
   window.addEventListener('pagehide', () => networkObserver?.disconnect?.(), { once: true });
-  log('loaded v0.2.1');
+  log('loaded v0.2.2');
 })();

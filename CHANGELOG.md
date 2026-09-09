@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 - 2026-09-09
+
+- Removed `GM_notification.highlight` so completion notifications no longer steal Firefox focus when they appear.
+- Kept conversation-bound navigation on explicit notification click only.
+- Added regression coverage preventing automatic highlight/focus from returning.
+
 ## 0.2.1 - 2026-09-09
 
 - Added conversation-bound notification navigation.
