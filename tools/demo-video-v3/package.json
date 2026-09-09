@@ -1,0 +1,35 @@
+{
+  "name": "demo-video-v3",
+  "version": "1.0.0",
+  "description": "Deterministic Remotion production pipeline for the chatgpt-swaync-inbox v3 showcase",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.522",
+    "@remotion/media": "4.0.522",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.522"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.522",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc",
+    "render:main": "remotion render src/index.ts MainDemo ../../docs/assets/demo/main-demo.mp4 --codec=h264 --crf=18 --overwrite",
+    "render:preview": "remotion render src/index.ts Preview out/preview.mp4 --codec=h264 --crf=20 --overwrite",
+    "render:frame": "remotion still src/index.ts MainDemo out/frame.png --frame=0 --overwrite"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}

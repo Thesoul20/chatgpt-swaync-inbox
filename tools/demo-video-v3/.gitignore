@@ -1,0 +1,10 @@
+node_modules
+dist
+.DS_Store
+.env
+
+# Render/cache outputs stay local.
+out
+
+# Raw capture sources are copied here only while rendering.
+public/sources/
