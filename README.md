@@ -29,6 +29,8 @@ Generic ChatGPT notification userscripts and browser extensions already exist. T
 ## Features
 
 - Uses a **hybrid completion detector**: same-origin ChatGPT conversation resource completion as the primary signal, with a conservative DOM state-machine fallback.
+- The DOM fallback is **event-driven with a throttled MutationObserver**, while a 400 ms poll remains only as a safety net.
+- A newly observed user prompt arms the generation cycle only when it follows a recent Send/Enter/form-submit signal, so very short answers do not depend on catching the transient Stop control while ordinary conversation navigation remains fail-quiet.
 - Binds the notification preview to the assistant turn that follows the **latest user prompt**, preventing stale previous-answer previews.
 - Suppresses success notifications after a recent manual Stop click or an obvious generation error.
 - DOM fallback requires a real generation cycle, assistant activity, Stop-control disappearance, and a stabilization window.

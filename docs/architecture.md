@@ -152,3 +152,7 @@ See [Related work](related-work.md) for design provenance and licensing boundari
 ### Why `@grant window.focus` is required
 
 Firefox may ignore page-level `window.focus()` when a userscript runs in a background tab. Tampermonkey 5.5 exposes a privileged `window.focus` bridge only when the userscript declares `@grant window.focus`; that bridge asks the extension to focus the originating tab. This permission is used only inside the notification click handler, so notification creation itself remains passive and does not steal focus.
+
+## Fast-response detection
+
+Starting with v0.2.4, the DOM fallback is event-driven. A throttled `MutationObserver` schedules checks whenever ChatGPT mutates the conversation DOM, while the 400 ms interval remains only as a safety net. The userscript also records recent composer submission signals (Send button, Enter, or form submit). If the latest user prompt changes inside that submit window, the detector arms a generation cycle even when the transient Stop control was never observed. Prompt changes without recent submission evidence are treated as baseline navigation/hydration events and do not notify.

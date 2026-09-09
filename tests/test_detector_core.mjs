@@ -62,6 +62,14 @@ assert.equal(
 );
 assert.equal(core.shouldRestoreConversation('https://chatgpt.com/c/a', ''), false);
 
+assert.equal(core.isPromptSubmitWindow(10_000, 8_000), true);
+assert.equal(core.isPromptSubmitWindow(20_000, 8_000), false);
+assert.equal(core.shouldArmForPromptChange('', { promptKey: 'u1' }, 10_000, 8_000), true);
+assert.equal(core.shouldArmForPromptChange('u1', { promptKey: 'u1' }, 10_000, 8_000), false);
+assert.equal(core.shouldArmForPromptChange('u1', { promptKey: 'u2' }, 20_000, 8_000), false);
+assert.equal(core.shouldArmForPromptChange('u1', { promptKey: 'u2' }, 10_000, 8_000), true);
+assert.equal(core.shouldArmForPromptChange('u1', { promptKey: '' }, 10_000, 8_000), false);
+
 assert.equal(core.cleanText('  hello\n   world  '), 'hello world');
 assert.equal(core.signature('same'), core.signature(' same '));
 

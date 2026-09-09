@@ -5,7 +5,7 @@
 // @supportURL   https://github.com/Thesoul20/chatgpt-swaync-inbox/issues
 // @downloadURL  https://raw.githubusercontent.com/Thesoul20/chatgpt-swaync-inbox/main/userscript/chatgpt-swaync-inbox.user.js
 // @updateURL    https://raw.githubusercontent.com/Thesoul20/chatgpt-swaync-inbox/main/userscript/chatgpt-swaync-inbox.user.js
-// @version      0.2.3
+// @version      0.2.4
 // @description  Turn completed ChatGPT web answers into persistent Linux/Wayland desktop notifications when paired with swaync.
 // @match        https://chatgpt.com/*
 // @grant        GM_notification
@@ -29,6 +29,7 @@
     answerStableMs: 700,
     answerWaitMs: 7000,
     manualStopGuardMs: 3500,
+    promptSubmitGuardMs: 8000,
     notifyWhenFocused: true,
     debug: false,
   });
@@ -41,9 +42,13 @@
   let lastAssistantActivityAt = 0;
   let stopGoneAt = 0;
   let lastManualStopAt = 0;
+  let lastPromptSubmitAt = 0;
   let lastNotifiedKey = '';
   let networkObserver = null;
   let networkObserverInstalled = false;
+  let domObserver = null;
+  let domObservationTimer = null;
+  let lastSeenPromptKey = '';
   const handledNetworkEntries = new Set();
 
   const log = (...args) => {
@@ -93,6 +98,18 @@
 
   function shouldRestoreConversation(currentUrl, capturedUrl) {
     return Boolean(capturedUrl) && currentUrl !== capturedUrl;
+  }
+
+  function isPromptSubmitWindow(timestamp, submitTimestamp = lastPromptSubmitAt) {
+    return Boolean(submitTimestamp)
+      && timestamp >= submitTimestamp
+      && timestamp - submitTimestamp <= CONFIG.promptSubmitGuardMs;
+  }
+
+  function shouldArmForPromptChange(previousPromptKey, snapshot, timestamp, submitTimestamp = lastPromptSubmitAt) {
+    return Boolean(snapshot?.promptKey)
+      && snapshot.promptKey !== previousPromptKey
+      && isPromptSubmitWindow(timestamp, submitTimestamp);
   }
 
   function selectPromptBoundTurn(turns) {
@@ -148,6 +165,8 @@
       containsErrorText,
       isManualStopWindow,
       shouldRestoreConversation,
+      isPromptSubmitWindow,
+      shouldArmForPromptChange,
       selectPromptBoundTurn,
     };
     return;
@@ -195,6 +214,29 @@
 
   function stopButton() {
     return Array.from(document.querySelectorAll('button')).find(isStopButton) || null;
+  }
+
+  function isSendButton(element) {
+    if (!(element instanceof HTMLElement)) return false;
+    const button = element.closest('button');
+    if (!button) return false;
+    const testid = (button.getAttribute('data-testid') || '').toLowerCase();
+    const aria = (button.getAttribute('aria-label') || '').toLowerCase();
+    const text = cleanText(button.textContent).toLowerCase();
+    return testid.includes('send-button')
+      || /send message|send prompt|发送消息|发送/.test(aria)
+      || /^(send|发送)$/.test(text);
+  }
+
+  function isComposerTarget(element) {
+    if (!(element instanceof Element)) return false;
+    return Boolean(element.closest('textarea, [contenteditable="true"], #prompt-textarea'));
+  }
+
+  function recordPromptSubmit(source) {
+    lastPromptSubmitAt = Date.now();
+    log('prompt submit observed', source);
+    scheduleDomObservation();
   }
 
   function detectObviousError() {
@@ -272,16 +314,18 @@
     log(`state -> IDLE (${reason})`);
   }
 
-  function beginCycle() {
-    const snapshot = promptBoundSnapshot();
+  function beginCycle(snapshot = promptBoundSnapshot(), promptChanged = false) {
     state = 'GENERATING';
     cyclePromptKey = snapshot.promptKey;
-    baselineAnswerKey = snapshot.answerKey ? `${snapshot.answerKey}:${signature(snapshot.answerText)}` : '';
+    baselineAnswerKey = promptChanged
+      ? ''
+      : (snapshot.answerKey ? `${snapshot.answerKey}:${signature(snapshot.answerText)}` : '');
     lastAnswerKey = baselineAnswerKey;
-    sawAssistantActivity = false;
-    lastAssistantActivityAt = 0;
+    sawAssistantActivity = promptChanged && Boolean(snapshot.answerText);
+    lastAssistantActivityAt = sawAssistantActivity ? Date.now() : 0;
     stopGoneAt = 0;
-    log('state -> GENERATING', { cyclePromptKey });
+    if (snapshot.promptKey) lastSeenPromptKey = snapshot.promptKey;
+    log('state -> GENERATING', { cyclePromptKey, promptChanged });
   }
 
   function noteAssistantActivity(snapshot, now) {
@@ -349,6 +393,7 @@
 
     const initial = promptBoundSnapshot();
     if (!initial.promptKey) return;
+    lastSeenPromptKey = initial.promptKey;
 
     const settled = await waitForStablePromptBoundAnswer(initial.promptKey);
     if (!settled) {
@@ -387,19 +432,32 @@
   function tickDomFallback() {
     const now = Date.now();
     const stop = stopButton();
+    const snapshot = promptBoundSnapshot();
 
     if (state === 'IDLE') {
-      if (stop) beginCycle();
+      const promptChanged = Boolean(snapshot.promptKey) && snapshot.promptKey !== lastSeenPromptKey;
+      if (stop) {
+        beginCycle(snapshot, promptChanged);
+      } else if (shouldArmForPromptChange(lastSeenPromptKey, snapshot, now)) {
+        beginCycle(snapshot, true);
+      } else if (promptChanged) {
+        lastSeenPromptKey = snapshot.promptKey;
+        log('prompt baseline updated without generation evidence');
+      }
       return;
     }
 
-    const snapshot = promptBoundSnapshot();
     if (cyclePromptKey && snapshot.promptKey && snapshot.promptKey !== cyclePromptKey) {
       resetCycle('prompt changed');
-      if (stop) beginCycle();
+      if (stop || isPromptSubmitWindow(now)) {
+        beginCycle(snapshot, true);
+      } else {
+        lastSeenPromptKey = snapshot.promptKey;
+      }
       return;
     }
 
+    if (snapshot.promptKey) lastSeenPromptKey = snapshot.promptKey;
     noteAssistantActivity(snapshot, now);
 
     if (detectObviousError()) {
@@ -431,11 +489,45 @@
     resetCycle('DOM completion');
   }
 
+  function scheduleDomObservation() {
+    if (domObservationTimer !== null) return;
+    domObservationTimer = window.setTimeout(() => {
+      domObservationTimer = null;
+      tickDomFallback();
+    }, 80);
+  }
+
+  function installDomObserver() {
+    if (typeof MutationObserver !== 'function' || !document.documentElement) return false;
+    domObserver = new MutationObserver(() => scheduleDomObservation());
+    domObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    log('DOM mutation observer installed');
+    return true;
+  }
+
   document.addEventListener('click', (event) => {
-    const button = event.target instanceof Element ? event.target.closest('button') : null;
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest('button') || null;
     if (button && isStopButton(button)) {
       lastManualStopAt = Date.now();
       log('manual stop click observed');
+      return;
+    }
+    if (target && isSendButton(target)) recordPromptSubmit('send button');
+  }, true);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+    if (event.target instanceof Element && isComposerTarget(event.target)) recordPromptSubmit('enter key');
+  }, true);
+
+  document.addEventListener('submit', (event) => {
+    if (event.target instanceof Element && event.target.querySelector('textarea, [contenteditable="true"], #prompt-textarea')) {
+      recordPromptSubmit('form submit');
     }
   }, true);
 
@@ -456,18 +548,27 @@
 
   GM_registerMenuCommand('Log detector status', () => {
     console.info('[chatgpt-swaync-inbox] detector status', {
-      version: '0.2.3',
+      version: '0.2.4',
       state,
       networkObserverInstalled,
+      domObserverInstalled: Boolean(domObserver),
+      lastSeenPromptKey,
       cyclePromptKey,
       sawAssistantActivity,
       lastManualStopAt,
+      lastPromptSubmitAt,
       latest: promptBoundSnapshot(),
     });
   });
 
+  lastSeenPromptKey = promptBoundSnapshot().promptKey;
   installNetworkObserver();
+  installDomObserver();
   setInterval(tickDomFallback, CONFIG.pollMs);
-  window.addEventListener('pagehide', () => networkObserver?.disconnect?.(), { once: true });
-  log('loaded v0.2.3');
+  window.addEventListener('pagehide', () => {
+    networkObserver?.disconnect?.();
+    domObserver?.disconnect?.();
+    if (domObservationTimer !== null) window.clearTimeout(domObservationTimer);
+  }, { once: true });
+  log('loaded v0.2.4');
 })();

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4 - 2026-09-09
+
+- Added a throttled `MutationObserver` so DOM completion checks are event-driven instead of relying only on the 400 ms safety poll.
+- Arms a generation cycle when the latest user prompt changes after a recent Send/Enter/form-submit signal, allowing very short responses to notify even if the Stop control appears and disappears between polls.
+- Preserves fail-quiet behavior for initial page load and ordinary conversation navigation by treating uncorrelated prompt changes as baseline updates.
+- Added regression tests for prompt-change arming.
+
 ## 0.2.3 - 2026-09-09
 
 - Added `@grant window.focus` so notification-click focus is handled by Tampermonkey's extension-level `focusTab` bridge instead of Firefox page-level `window.focus()`.

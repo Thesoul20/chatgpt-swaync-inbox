@@ -91,3 +91,7 @@ Update the userscript to **v0.2.2 or newer**. v0.2.1 used `highlight: true`, and
 ## Clicking a notification does not switch to the ChatGPT tab
 
 Use **v0.2.3 or newer**. Firefox may ignore ordinary page-level `window.focus()` for a background tab. v0.2.3 adds `@grant window.focus`, which lets Tampermonkey route the click through its privileged tab-focus bridge. After updating the userscript, reload any already-open ChatGPT tabs so the new grant is injected.
+
+## Very short answers do not notify
+
+Update to **v0.2.4 or newer**. Earlier releases could miss a generation if the Stop control appeared and disappeared entirely between DOM polling ticks and the resource-completion signal was unavailable. v0.2.4 adds mutation-driven checks plus prompt-change arming correlated with recent Send/Enter/form-submit activity.
