@@ -86,3 +86,8 @@ Then remove the userscript from Tampermonkey/Violentmonkey. The installer-create
 ## Notification steals focus as soon as it appears
 
 Update the userscript to **v0.2.2 or newer**. v0.2.1 used `highlight: true`, and Tampermonkey may focus the sending tab/window immediately when the notification is shown. v0.2.2 removes `highlight`; focus/navigation happens only after an explicit notification click.
+
+
+## Clicking a notification does not switch to the ChatGPT tab
+
+Use **v0.2.3 or newer**. Firefox may ignore ordinary page-level `window.focus()` for a background tab. v0.2.3 adds `@grant window.focus`, which lets Tampermonkey route the click through its privileged tab-focus bridge. After updating the userscript, reload any already-open ChatGPT tabs so the new grant is injected.

@@ -147,3 +147,8 @@ See [Related work](related-work.md) for design provenance and licensing boundari
 ## Click-only focus policy
 
 `GM_notification.highlight` is intentionally omitted. Tampermonkey documents `highlight` as focusing/highlighting the sending tab/window, which would interrupt whatever the user is doing as soon as a completion notification appears. Focus is instead requested only inside the notification `onclick` callback, after the user explicitly clicks the notification.
+
+
+### Why `@grant window.focus` is required
+
+Firefox may ignore page-level `window.focus()` when a userscript runs in a background tab. Tampermonkey 5.5 exposes a privileged `window.focus` bridge only when the userscript declares `@grant window.focus`; that bridge asks the extension to focus the originating tab. This permission is used only inside the notification click handler, so notification creation itself remains passive and does not steal focus.

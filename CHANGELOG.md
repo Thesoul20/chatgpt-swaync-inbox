@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3 - 2026-09-09
+
+- Added `@grant window.focus` so notification-click focus is handled by Tampermonkey's extension-level `focusTab` bridge instead of Firefox page-level `window.focus()`.
+- Preserved click-only behavior: notifications remain passive until explicitly clicked.
+
 ## 0.2.2 - 2026-09-09
 
 - Removed `GM_notification.highlight` so completion notifications no longer steal Firefox focus when they appear.
