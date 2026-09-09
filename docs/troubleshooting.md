@@ -47,6 +47,13 @@ swaync-client -I
 
 DND or notification inhibition can suppress visible popups even when the project is otherwise configured correctly.
 
+
+## Clicking a notification opens a new ChatGPT tab
+
+Update the userscript to **v0.2.1 or newer**. Older releases used `url: location.href`, which some userscript/browser combinations interpret as an instruction to open the URL in a new tab.
+
+In v0.2.1+, production notifications omit `url`, request `highlight: true`, and restore the captured conversation inside the originating tab. If the behavior persists after updating, confirm the active userscript version from **Log detector status** and disable any older experimental ChatGPT notification scripts.
+
 ## Duplicate notifications
 
 Confirm that only one copy of the userscript is enabled. Userscript managers may retain old database blobs internally after an update; what matters is whether two scripts are listed as enabled in the manager UI.

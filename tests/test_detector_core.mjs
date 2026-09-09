@@ -52,6 +52,16 @@ assert.equal(core.isManualStopWindow(10_000, 8_000), true);
 assert.equal(core.isManualStopWindow(7_000, 8_000), false);
 assert.equal(core.isManualStopWindow(20_000, 8_000), false);
 
+assert.equal(
+  core.shouldRestoreConversation('https://chatgpt.com/c/a', 'https://chatgpt.com/c/a'),
+  false,
+);
+assert.equal(
+  core.shouldRestoreConversation('https://chatgpt.com/c/b', 'https://chatgpt.com/c/a'),
+  true,
+);
+assert.equal(core.shouldRestoreConversation('https://chatgpt.com/c/a', ''), false);
+
 assert.equal(core.cleanText('  hello\n   world  '), 'hello world');
 assert.equal(core.signature('same'), core.signature(' same '));
 

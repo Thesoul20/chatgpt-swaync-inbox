@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 - 2026-09-09
+
+- Added conversation-bound notification navigation.
+- Removed `url: location.href` from userscript notifications so clicking does not open a new browser tab.
+- Added `highlight: true` and click handlers that focus the originating tab.
+- Captures the conversation URL at notification time and restores that URL inside the originating tab if it later navigated elsewhere.
+- Added regression tests for no-new-tab behavior and conversation restoration decisions.
+
 ## 0.2.0 - 2026-09-09
 
 - Replaced DOM-only completion detection with a hybrid resource-completion + DOM fallback design.

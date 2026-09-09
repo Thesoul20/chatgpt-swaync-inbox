@@ -33,7 +33,8 @@ Generic ChatGPT notification userscripts and browser extensions already exist. T
 - Suppresses success notifications after a recent manual Stop click or an obvious generation error.
 - DOM fallback requires a real generation cycle, assistant activity, Stop-control disappearance, and a stabilization window.
 - Includes a response preview in the notification.
-- Clicking the userscript notification returns to the ChatGPT page.
+- Clicking a completion notification **reactivates the originating ChatGPT tab instead of opening a new tab**.
+- Each notification captures its conversation URL; if the originating tab later moves to another chat, clicking the notification restores the original conversation in that same tab.
 - Adds only one named `swaync` visibility rule.
 - Backs up `~/.config/swaync/config.json` before modifying it.
 - Stores install state so uninstall can restore the previous critical timeout and previous same-name rule.
@@ -123,6 +124,20 @@ ChatGPT Answer Complete
 ```
 
 `swaync` recognizes that exact title, promotes it to critical urgency, and keeps it until you close it.
+
+
+### Notification click behavior
+
+Completion notifications are **conversation-bound**. The userscript intentionally does not provide a `url` field to `GM_notification`, because browser userscript managers may interpret that as “open this URL” and create a new tab. Instead it requests `highlight: true` and handles the click locally.
+
+When you click a completion notification:
+
+1. Tampermonkey/Violentmonkey highlights the tab that emitted it;
+2. the click handler prevents the default open-URL behavior;
+3. if that tab is still on the captured conversation, it scrolls back toward the completed answer;
+4. if the tab has since navigated to another ChatGPT conversation, the **same tab** is navigated back to the captured conversation URL.
+
+This makes a persistent notification behave like an unread task result: clicking it returns you to the task context rather than creating another browser tab.
 
 ## Uninstall
 

@@ -103,6 +103,34 @@ The installer records the pre-install value and the uninstaller restores it.
 
 The production `GM_notification` intentionally omits its own timeout. The desktop notification daemon should own expiration policy. If the userscript set a finite timeout, the browser/userscript manager could close the notification even though swaync was configured to retain it.
 
+
+## Conversation-bound notification navigation
+
+The completion detector binds not only the preview to the latest prompt/answer pair, but also the notification click to the **conversation URL that existed when the notification was emitted**.
+
+The production `GM_notification` deliberately omits the `url` option. Supplying `url: location.href` can cause the userscript manager/browser to open a new tab when the notification is clicked. Instead the notification uses:
+
+```text
+highlight: true
+        +
+onclick(event)
+        ↓
+preventDefault()
+        ↓
+focus originating tab
+        ↓
+current URL == captured conversation URL?
+    ├─ yes → scroll toward the completed answer
+    └─ no  → navigate that same tab back to captured URL
+```
+
+This creates two separate bindings:
+
+- **prompt-bound completion** answers “which assistant answer belongs to the latest prompt?”
+- **conversation-bound navigation** answers “which browser context should this notification return the user to?”
+
+If the original tab has been closed entirely, the userscript does not intentionally create a replacement tab; the no-new-tab behavior is preferred over silently spawning duplicate ChatGPT tabs.
+
 ## Failure modes
 
 - **Known network endpoint changes:** resource signal is missed; DOM fallback remains active.
