@@ -65,6 +65,22 @@ This repository is therefore not another generic “ChatGPT finished” notifier
 - **Local only** — no backend, ChatGPT API key, analytics, telemetry, or conversation upload.
 - **Reversible desktop integration** — installation backs up and records the swaync state needed for uninstall to restore prior values.
 
+## Other platforms and related projects
+
+This project deliberately focuses on the Linux / Wayland / swaync workflow. If you mainly want a conventional completion notification on Windows, macOS, or a Chromium-based browser, several open-source projects already cover that space well:
+
+| Project | Best fit | Main approach |
+|---|---|---|
+| [shcw0405/streaming-complete-notifier](https://github.com/shcw0405/streaming-complete-notifier) | Windows / macOS / Linux users who want one Chromium extension for multiple AI sites | Platform-specific network/stream signals with desktop notifications; supports ChatGPT, Gemini, Grok, and AI Studio |
+| [duduzeta/aicq](https://github.com/duduzeta/aicq) | Chrome users who want ChatGPT / Claude / Gemini completion alerts | `chrome.webRequest` completion detection plus notification click-to-focus |
+| [kkonstantin08/chatgpt-done-notifier](https://github.com/kkonstantin08/chatgpt-done-notifier) | Windows-focused ChatGPT users who prefer a configurable extension | Conservative DOM state machine, quiet hours, sound, diagnostics, and tab restoration |
+| [kimik-hyum/ai-chat-notification](https://github.com/kimik-hyum/ai-chat-notification) | macOS / Windows users who want a small ChatGPT / Gemini / Claude notifier | Stop-control state detection with Chrome system notifications |
+| [ramhaidar/ChatGPT-Response-Complete-Notifier](https://github.com/ramhaidar/ChatGPT-Response-Complete-Notifier) | Userscript users across Chrome, Firefox, Edge, or Safari | ChatGPT streaming-completion detection, response preview, chime, and duplicate suppression |
+
+Those projects reduce the need for separate Windows- or macOS-native ports of `chatgpt-swaync-inbox`. This repository instead concentrates on the Linux-specific gap: **persistent unread-result semantics, passive arrival, conversation-bound return, and a Hyprland compositor-level focus fallback**.
+
+For a feature-by-feature comparison, detector notes, maintenance caveats, and design provenance, see [Related work](docs/related-work.md).
+
 ## Quick Start
 
 ### 1. Clone
