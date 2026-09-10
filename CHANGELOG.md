@@ -2,8 +2,15 @@
 
 ## Unreleased
 
+## 0.2.5 - 2026-09-10
+
+- Added a Hyprland compositor-level click-focus fallback for Firefox/Wayland: an explicit swaync notification action runs a local helper that focuses the Firefox window temporarily marked by the originating userscript tab.
+- Upgraded swaync install state to schema v2 so the new action hook/helper remains idempotent and reversible, including migration from existing schema-v1 installs.
+- Bumped the userscript to v0.2.5 and centralized notification-click handling around the short-lived source-tab marker plus the existing same-tab conversation restore behavior.
+- Added an AgentDock-native Remotion v3 product showcase with a 23.5-second real interaction demo, animated README preview, publication stills, and a reproducible local render pipeline.
+- Redesigned the README hero and information architecture around the product value loop, Quick Start, accepted v3 preview, and deeper technical documentation links.
 - Clarified that the userscript manager must be allowed to run on `https://chatgpt.com/*` before detector or swaync troubleshooting.
-- Synchronized README, architecture, troubleshooting, contributor guidance, security notes, and bug-report fields with the current v0.2.4 click-only focus and short-response behavior.
+- Synchronized architecture, troubleshooting, security, and release guidance with the v0.2.5 click-return behavior while retaining the v0.2.4 short-response detector semantics.
 
 ## 0.2.4 - 2026-09-09
 

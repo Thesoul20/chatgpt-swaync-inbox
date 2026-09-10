@@ -2,9 +2,10 @@
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$ROOT/userscript/chatgpt-swaync-inbox.user.js"
+FOCUS_HELPER="$ROOT/scripts/focus-firefox-hyprland.sh"
 node --check "$SCRIPT"
 grep -q "@match        https://chatgpt.com/\*" "$SCRIPT"
-grep -q "@version      0.2.4" "$SCRIPT"
+grep -q "@version      0.2.5" "$SCRIPT"
 grep -q "const NOTIFICATION_TITLE = 'ChatGPT Answer Complete'" "$SCRIPT"
 grep -q "PerformanceObserver" "$SCRIPT"
 grep -q "/backend-api/f/conversation" "$SCRIPT"
@@ -13,6 +14,9 @@ grep -q "detectObviousError" "$SCRIPT"
 grep -q "manual stop" "$SCRIPT"
 grep -q "event?.preventDefault?.()" "$SCRIPT"
 grep -q "@grant        window.focus" "$SCRIPT"
+grep -Fq "const FOCUS_TARGET_TITLE_PREFIX = '[ChatGPT Inbox Return] ';" "$SCRIPT"
+grep -q "markFocusTarget" "$SCRIPT"
+grep -q "handleNotificationClick" "$SCRIPT"
 grep -q "MutationObserver" "$SCRIPT"
 grep -q "shouldArmForPromptChange" "$SCRIPT"
 if grep -q "highlight: true" "$SCRIPT"; then
@@ -28,4 +32,7 @@ if grep -A22 "function sendNotification" "$SCRIPT" | grep -q "timeout:"; then
   echo 'production notification must not set a timeout' >&2
   exit 1
 fi
-printf '%s\n' 'userscript static checks passed'
+[[ -x "$FOCUS_HELPER" ]] || { echo 'Hyprland focus helper must be executable' >&2; exit 1; }
+grep -Fq "MARKER='[ChatGPT Inbox Return] '" "$FOCUS_HELPER"
+env -u HYPRLAND_INSTANCE_SIGNATURE "$FOCUS_HELPER"
+printf '%s\n' 'userscript/focus-helper static checks passed'

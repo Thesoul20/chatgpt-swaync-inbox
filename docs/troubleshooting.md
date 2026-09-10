@@ -61,7 +61,7 @@ DND or notification inhibition can suppress visible popups even when the project
 
 Update the userscript to **v0.2.1 or newer**. Older releases used `url: location.href`, which some userscript/browser combinations interpret as an instruction to open the URL in a new tab.
 
-Current releases omit the `url` option entirely. Starting with v0.2.2 they also omit `highlight`, so notifications stay passive until clicked; starting with v0.2.3 `@grant window.focus` lets the explicit click activate the originating tab. If a click still opens a new tab, confirm the active userscript version from **Log detector status** and disable any older experimental ChatGPT notification scripts.
+Current releases omit the `url` option entirely. Starting with v0.2.2 they also omit `highlight`, so notifications stay passive until clicked; v0.2.3 added `@grant window.focus`, and v0.2.5 adds the Hyprland compositor-focus fallback. If a click still opens a new tab, confirm the active userscript version from **Log detector status** and disable any older experimental ChatGPT notification scripts.
 
 ## Duplicate notifications
 
@@ -97,7 +97,15 @@ Update the userscript to **v0.2.2 or newer**. v0.2.1 used `highlight: true`, and
 
 ## Clicking a notification does not switch to the ChatGPT tab
 
-Use **v0.2.3 or newer**. Firefox may ignore ordinary page-level `window.focus()` for a background tab. v0.2.3 adds `@grant window.focus`, which lets Tampermonkey route the click through its privileged tab-focus bridge. After updating the userscript, reload any already-open ChatGPT tabs so the new grant is injected.
+On Hyprland + Firefox, use **v0.2.5 or newer** and rerun `./scripts/install-swaync.sh`. v0.2.3 added Tampermonkey's privileged `@grant window.focus` bridge, but end-to-end Wayland testing showed that Firefox could receive the notification action while Hyprland still kept another application in front. v0.2.5 adds a swaync `run-on: action` helper that focuses the exact Firefox window marked by the userscript.
+
+Verify the installed integration with:
+
+```bash
+./scripts/doctor.sh
+```
+
+The doctor should report both `action-script: ok` and an executable click-focus helper. Also reload already-open ChatGPT tabs after updating the userscript so v0.2.5 is injected. On non-Hyprland compositors, the helper intentionally no-ops and focus still depends on the browser/userscript-manager path.
 
 ## Very short answers do not notify
 

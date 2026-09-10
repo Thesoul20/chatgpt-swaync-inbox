@@ -20,7 +20,7 @@ GM_notification                                 timeout-critical = 0
 
 If ChatGPT changes its UI or request path, only the browser detector should need adjustment. If a user changes compositor or notification styling, the detector should not care.
 
-## Completion detector: v0.2.4
+## Completion detector: v0.2.4+
 
 The detector uses two independent paths and deduplicates their result.
 
@@ -116,11 +116,16 @@ no url / no highlight
         ↓
 user clicks notification
         ↓
-onclick(event)
+swaync ActionInvoked("default")
+        ├─────────────────────────────────────┐
+        ↓                                     ↓
+userscript onclick(event)              Hyprland action helper
+        ↓                                     ↓
+preventDefault()                       wait for source marker
+        ↓                                     ↓
+mark source tab title briefly          focus exact Firefox HL.Window
         ↓
-preventDefault()
-        ↓
-@grant window.focus → focus originating tab
+@grant window.focus → activate originating tab
         ↓
 current URL == captured conversation URL?
     ├─ yes → scroll toward the completed answer
@@ -144,6 +149,7 @@ If the original tab has been closed entirely, the userscript does not intentiona
 - **swaync rule missing:** browser notification still appears but follows normal swaync timeout.
 - **critical timeout non-zero:** ChatGPT notification is promoted to critical but still expires according to swaync policy.
 - **DND/inhibition:** OS policy wins and may suppress the popup.
+- **Non-Hyprland Wayland compositor rejects browser focus:** the userscript still activates its source tab, but the v0.2.5 compositor-level fallback is Hyprland-specific.
 
 See [Related work](related-work.md) for design provenance and licensing boundaries.
 
@@ -155,7 +161,11 @@ See [Related work](related-work.md) for design provenance and licensing boundari
 
 ### Why `@grant window.focus` is required
 
-Firefox may ignore page-level `window.focus()` when a userscript runs in a background tab. Tampermonkey 5.5 exposes a privileged `window.focus` bridge only when the userscript declares `@grant window.focus`; that bridge asks the extension to focus the originating tab. This permission is used only inside the notification click handler, so notification creation itself remains passive and does not steal focus.
+Firefox may ignore page-level `window.focus()` when a userscript runs in a background tab. Tampermonkey 5.5 exposes a privileged `window.focus` bridge only when the userscript declares `@grant window.focus`; that bridge asks the extension to activate the originating tab and focus its browser window. This permission is used only inside the notification click handler, so notification creation itself remains passive and does not steal focus.
+
+On Wayland, the compositor can still reject or ignore the browser window-focus request. Starting with v0.2.5, the Hyprland integration therefore adds a second, explicit-action-only path: the userscript briefly prefixes the source tab title with `[ChatGPT Inbox Return]`, while swaync runs `focus-browser-hyprland.sh` only for an action on the exact `ChatGPT Answer Complete` summary. The helper waits for the marker, resolves the matching Firefox window from `hyprctl clients -j`, and focuses that exact `HL.Window` through Hyprland's Lua dispatcher API. If Hyprland is not detected, the helper exits without changing focus.
+
+This fallback was added after an end-to-end test proved that swaync emitted both an XDG activation token and `ActionInvoked("default")` while Firefox nevertheless remained behind the current Kitty window. With v0.2.5 installed, the same real notification-card click was verified to transition `Kitty → Firefox`, expose the temporary source marker, and then restore the normal conversation title.
 
 ## Fast-response detection
 

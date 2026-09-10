@@ -5,7 +5,7 @@
 // @supportURL   https://github.com/Thesoul20/chatgpt-swaync-inbox/issues
 // @downloadURL  https://raw.githubusercontent.com/Thesoul20/chatgpt-swaync-inbox/main/userscript/chatgpt-swaync-inbox.user.js
 // @updateURL    https://raw.githubusercontent.com/Thesoul20/chatgpt-swaync-inbox/main/userscript/chatgpt-swaync-inbox.user.js
-// @version      0.2.4
+// @version      0.2.5
 // @description  Turn completed ChatGPT web answers into persistent Linux/Wayland desktop notifications when paired with swaync.
 // @match        https://chatgpt.com/*
 // @grant        GM_notification
@@ -19,6 +19,7 @@
   'use strict';
 
   const NOTIFICATION_TITLE = 'ChatGPT Answer Complete';
+  const FOCUS_TARGET_TITLE_PREFIX = '[ChatGPT Inbox Return] ';
   const CONVERSATION_PATHS = new Set([
     '/backend-api/f/conversation',
     '/backend-api/conversation',
@@ -98,6 +99,30 @@
 
   function shouldRestoreConversation(currentUrl, capturedUrl) {
     return Boolean(capturedUrl) && currentUrl !== capturedUrl;
+  }
+
+  function markFocusTarget() {
+    const originalTitle = document.title;
+    const markedTitle = originalTitle.startsWith(FOCUS_TARGET_TITLE_PREFIX)
+      ? originalTitle
+      : `${FOCUS_TARGET_TITLE_PREFIX}${originalTitle}`;
+    document.title = markedTitle;
+    window.setTimeout(() => {
+      if (document.title === markedTitle) document.title = originalTitle;
+    }, 1800);
+  }
+
+  function handleNotificationClick(event, conversationUrl, answerNode = null) {
+    event?.preventDefault?.();
+    markFocusTarget();
+    window.focus();
+
+    if (shouldRestoreConversation(location.href, conversationUrl)) {
+      location.assign(conversationUrl);
+      return;
+    }
+
+    answerNode?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
   }
 
   function isPromptSubmitWindow(timestamp, submitTimestamp = lastPromptSubmitAt) {
@@ -286,17 +311,7 @@
       text: preview(snapshot.answerText),
       tag: `chatgpt-complete-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       silent: false,
-      onclick: (event) => {
-        event?.preventDefault?.();
-        window.focus();
-
-        if (shouldRestoreConversation(location.href, conversationUrl)) {
-          location.assign(conversationUrl);
-          return;
-        }
-
-        answerNode?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
-      },
+      onclick: (event) => handleNotificationClick(event, conversationUrl, answerNode),
     });
 
     log('completion notification sent', { source, promptKey: snapshot.promptKey });
@@ -538,17 +553,13 @@
       text: 'If swaync integration is installed, this notification should stay until you dismiss it.',
       tag: `chatgpt-swaync-test-${Date.now()}`,
       silent: false,
-      onclick: (event) => {
-        event?.preventDefault?.();
-        window.focus();
-        if (shouldRestoreConversation(location.href, conversationUrl)) location.assign(conversationUrl);
-      },
+      onclick: (event) => handleNotificationClick(event, conversationUrl),
     });
   });
 
   GM_registerMenuCommand('Log detector status', () => {
     console.info('[chatgpt-swaync-inbox] detector status', {
-      version: '0.2.4',
+      version: '0.2.5',
       state,
       networkObserverInstalled,
       domObserverInstalled: Boolean(domObserver),
@@ -570,5 +581,5 @@
     domObserver?.disconnect?.();
     if (domObservationTimer !== null) window.clearTimeout(domObservationTimer);
   }, { once: true });
-  log('loaded v0.2.4');
+  log('loaded v0.2.5');
 })();
